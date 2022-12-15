@@ -1,4 +1,4 @@
-<details><summary>Show Output</summary>
+<details><summary>DESCRIPTION_HERE</summary>
 
 ```diff
 DIFF_HERE
