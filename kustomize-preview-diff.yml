@@ -1,0 +1,135 @@
+version: '1.0'
+kind: step-type
+metadata:
+  name: kostis-codefresh/kustomize-preview-diff
+  isPublic: true
+  description: >-
+    This pipeline plugin compares Kustomize overlays for Pull requests
+  sources:
+    - 'https://github.com/kostis-codefresh/kustomize-github-preview-diff'
+  stage: incubating
+  maintainers:
+    - name: Kostis Kapelonis
+  categories:
+    - git
+  official: false
+  tags: []
+  icon:
+    type: svg
+    url: https://cdn.worldvectorlogo.com/logos/kubernets.svg
+    background: '#f4f4f4'
+  examples:
+    - description: kustomize-preview-diff-pr-event
+      workflow:
+        version: '1.0'
+        steps:
+          add_comment_on_current_pr_from_trigger:
+            title: Adding comment on this PR
+            type: kostis-codefresh/kustomize-preview-diff
+            fail_fast: false
+            arguments:
+              GIT_PROVIDER_NAME: 'github'
+              KUSTOMIZE_OVERLAY_DIRS: 
+                - 'envs/qa'
+                - 'envs/staging'
+                - 'envs/production'
+    - description: kustomize-preview-on-specific-pr
+      workflow:
+        version: '1.0'
+        steps:
+          add_pr_comment_directly:
+            title: Adding comment on another PR
+            type: kostis-codefresh/kustomize-preview-diff
+            fail_fast: false
+            arguments:
+              GIT_PROVIDER_NAME: 'github'
+              KUSTOMIZE_OVERLAY_DIRS: 
+                - 'envs/prod-us'
+                - 'envs/prod-eu'
+  latest: true
+  version: 1.0.0
+spec:
+  arguments: |-
+    {
+        "definitions": {},
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "additionalProperties": false,
+        "patterns": [],
+        "required": [
+          "GIT_PROVIDER_NAME",
+          "KUSTOMIZE_OVERLAY_DIRS"
+        ],     
+        "properties": {         
+            "GIT_PROVIDER_NAME": {
+                "type": "string",
+                "description": "Name of git provider to use from Codefresh integrations screen"
+            },
+            "KUSTOMIZE_OVERLAY_DIRS": {
+                "description": "A list/array of kustomization directories to diff between the PR and its target",
+                 "type": "array",
+                 "maxItems": 20,
+                 "items": {
+                        "type": "string"
+                  }
+            }
+            
+        }
+    }
+  steps:
+    checkout_target:
+       title: "Check"
+       image: alpine:3.10.3
+       environment:
+         - GIT_PROVIDER_NAME=${{GIT_PROVIDER_NAME}}       
+       commands:
+         - ls
+         - echo $CF_PULL_REQUEST_NUMBER 
+         - echo $CF_PULL_REQUEST_TARGET   
+         - ls     
+    get_github_token:
+       title: "Get token"
+       image: codefresh/cli
+       environment:
+         - GIT_PROVIDER_NAME=${{GIT_PROVIDER_NAME}}       
+       commands:
+         - export GITHUB_TOKEN=$(codefresh get context $GIT_PROVIDER_NAME --decrypt -o yaml | yq -r -c .spec.data.auth.password)  
+         - echo GITHUB_TOKEN=$GITHUB_TOKEN >> /meta/env_vars_to_export         
+    clone_target:
+      title: Cloning Target
+      type: git-clone
+      arguments: 
+        repo: '${{CF_REPO_OWNER}}/${{CF_REPO_NAME}}'
+        revision: '${{CF_PULL_REQUEST_TARGET}}'
+        git: ${{GIT_PROVIDER_NAME}}
+        working_directory: '/codefresh/volume/target'
+    render_envs:
+       title: "Render Envs"
+       image: alpine:3.10.3
+       environment:
+         - GIT_PROVIDER_NAME=${{GIT_PROVIDER_NAME}}       
+       commands:
+         - ls
+        #  - ls target
+         - ls /tmp
+        #  - ls /tmp/target_of_pr/*      
+#     create_pr_comment:
+#        title: "Write comment"
+#        image: cloudposse/github-commenter      
+#        environment:
+#          - GITHUB_OWNER=${{CF_REPO_OWNER}} 
+#          - GITHUB_REPO=${{CF_REPO_NAME}}
+#          - GITHUB_COMMENT_TYPE=pr
+#          - GITHUB_PR_ISSUE_NUMBER=${{CF_PULL_REQUEST_NUMBER}}
+#          - GITHUB_COMMENT=${{PR_COMMENT_TEXT}}
+# #         - GITHUB_DELETE_COMMENT_REGEX=staging
+#        commands:
+#          - github-commenter
+
+
+
+
+
+
+
+
