@@ -77,7 +77,7 @@ spec:
         }
     }
   steps:
-    checkout_target:
+    checkout_properties:
        title: "Check"
        image: alpine:3.10.3
        environment:
@@ -95,14 +95,22 @@ spec:
        commands:
          - export GITHUB_TOKEN=$(codefresh get context $GIT_PROVIDER_NAME --decrypt -o yaml | yq -r -c .spec.data.auth.password)  
          - echo GITHUB_TOKEN=$GITHUB_TOKEN >> /meta/env_vars_to_export         
+    clone_changes:
+      title: Cloning Changes
+      type: git-clone 
+      repo: '${{CF_REPO_OWNER}}/${{CF_REPO_NAME}}'
+      revision: '${{CF_REVISION}}'
+      git: ${{GIT_PROVIDER_NAME}}
+      depth: 1
+      working_directory: './pr'
     clone_target:
       title: Cloning Target
-      type: git-clone
-      arguments: 
-        repo: '${{CF_REPO_OWNER}}/${{CF_REPO_NAME}}'
-        revision: '${{CF_PULL_REQUEST_TARGET}}'
-        git: ${{GIT_PROVIDER_NAME}}
-        working_directory: '/codefresh/volume/target'
+      type: git-clone 
+      repo: '${{CF_REPO_OWNER}}/${{CF_REPO_NAME}}'
+      revision: '${{CF_PULL_REQUEST_TARGET}}'
+      git: ${{GIT_PROVIDER_NAME}}
+      depth: 1
+      working_directory: './target'
     render_envs:
        title: "Render Envs"
        image: alpine:3.10.3
@@ -112,6 +120,8 @@ spec:
          - ls
         #  - ls target
          - ls /tmp
+         - ls /codefresh/volume/
+         - ls /meta/
         #  - ls /tmp/target_of_pr/*      
 #     create_pr_comment:
 #        title: "Write comment"
